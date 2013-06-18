@@ -1,0 +1,101 @@
+<html>
+    <style type="text/css">
+         
+        .scroll-content {position:absolute;top:0;left:0}
+        .slider-wrap{position:absolute;right:0;top:0;background-color:lightgrey;width:20px;border-left:1px solid gray;}
+        .slider-vertical{position:relative;height:100%}
+        .ui-slider-handle{width:20px;height:10px;margin:0 auto;background-color:darkgray;display:block;position:absolute}
+        .ui-slider-handle img{border:none}
+        .scrollbar-top{position:absolute;top:0;}
+        .scrollbar-bottom{position:absolute;bottom:0;}
+        .scrollbar-grip{position:absolute;top:50%;margin-top:-6px;}
+        .ui-slider-range{position:absolute;width:100%;background-color:lightgrey}
+      
+        body{font-family:Arial, Helvetica, sans-serif;color:#666666;margin:0;padding:0;background-color:#eeeeee}
+        h1{
+                margin:0 0 30px;
+                padding:0px 0px 0px 30px;
+                font-weight:normal;
+                font-size:24pt;
+                color:white;
+                background:url("/images/common/header_optimised.jpg") no-repeat right center #040405;
+                line-height:3em;
+                font-family:Museo,Arial, Helmet,Helvetica,Freesans, sans-serif
+        }
+        p#return{clear:left;margin-left:50px;margin-top:30px}
+        p#prompt,p.prompt{margin-left:50px}
+        
+        a:active, a:focus{outline:none}
+        
+        form{margin-left:50px;width:150px}
+        input{font-size:12px}
+        label{float:left;width:170px}
+        select{float:left;width:200px;font-family:Arial, Helvetica, sans-serif;font-size:12px;margin-bottom:10px}
+        fieldset{border:none;padding:0;margin:0 0 15px;width:400px}
+        
+        #scroll-pane,.scroll-pane {
+            background-color:white;
+            overflow: auto;
+            width: 220px;
+            height:300px;
+            border:1px solid gray;
+            padding-bottom:10px;
+            padding-right:10px;
+            padding-left:10px;
+            margin-bottom:10px;
+        }
+        
+        .scroll-content-item {
+            background-color:#fcfcfc;
+            color:#003366;
+            width:100%;
+            height:100px;
+            
+            margin-top:10px;
+            font-size:3em;
+            line-height:96px;
+            text-align:center;
+            border:1px solid gray;
+        }
+        
+        /*CYCLER - COMMON*/
+        .container{height:337px;width:506px;float:left;margin-left:50px;display:inline;margin-bottom:40px}
+
+    </style>
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <body>
+      <div id="scroll-pane">
+        <div class="scroll-content-item">1</div>
+	<div class="scroll-content-item ">2</div>
+	<div class="scroll-content-item ">3</div>
+	<div class="scroll-content-item ">4</div>
+	<div class="scroll-content-item ">5</div>
+	<div class="scroll-content-item ">6</div>
+	<div class="scroll-content-item ">7</div>
+	<div class="scroll-content-item " id="test8">8</div>
+	<div class="scroll-content-item ">9</div>
+	<div class="scroll-content-item ">10</div>
+	<div class="scroll-content-item ">11</div>
+	<div class="scroll-content-item ">12</div>
+	<div class="scroll-content-item ">13</div>
+	<div class="scroll-content-item ">14</div>
+	<div class="scroll-content-item ">15</div>
+	<div class="scroll-content-item ">16</div>
+	<div class="scroll-content-item ">17</div>
+	<div class="scroll-content-item ">18</div>
+	<div class="scroll-content-item ">19</div>
+	<div class="scroll-content-item ">20</div>
+      </div>
+      <div id="scroll-pane">
+        <div class="scroll-content-item">1</div>
+	<div class="scroll-content-item ">2</div>
+      </div>
+      <script src="verticalscroll.js" type="text/javascript"></script>
+      <script type="text/javascript">
+    setSlider($('#playlist'));
+    </script>
+      
+    
+    </body>
+</html>

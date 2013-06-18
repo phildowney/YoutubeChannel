@@ -1,0 +1,488 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <title>YouTube Player API Sample</title>
+    <style type="text/css">
+      #videoWrapper {
+	background-color: #000000;
+	height:720px;
+	width:1280px;
+	overflow: hidden;
+      }
+      
+      #videoInfo {
+	
+	display: none;
+      }
+      
+      #sidebar
+      {
+	float: right;
+	/*background-color: #00ff00;*/
+	width: 350px;
+	height: 720px;
+      }
+      
+      #playlistControls
+      {
+	height: 40px;
+      }
+      
+      #playlist {
+	
+	/*background-color: #00ff00;*/
+	width: 100%;
+	height: 680px;
+      }
+      
+      #wrapper{
+	margin-left:auto;
+	margin-right:auto;
+      }
+      
+      .scratch
+      {
+	background-color:blue;
+	display:none;
+      }
+      
+     
+
+    </style>
+    <link rel="stylesheet" type="text/css" href="playlist.css"/>
+
+
+    
+    <!--YouTube APIs-->    
+    <script src="http://www.google.com/jsapi" type="text/javascript"></script>
+    <script src="https://apis.google.com/js/client.js?onload=load"></script>
+
+    <!--jQuery APIs-->
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.14/jquery-ui.min.js"></script>
+    <script src="jquery.mousewheel.min.js"></script>
+    <script src="jquery.dotdotdot.js" type="text/javascript"></script>
+
+    <!--Custom JS-->
+    <script src="uploadsForChannel.js" type="text/javascript"></script>
+
+      
+    <script type="text/javascript">
+      
+     
+      
+      
+      $(document).ready(function() {
+	    
+	$('.ellipsis').each(function(i, obj) {
+	    var originalText = $(this).text();
+	    
+	    $(this).dotdotdot();
+	    var isTruncated = $(this).triggerHandler("isTruncated");
+	
+	    if ( isTruncated ) {
+	       $(this).wrapInner('<span title="' + originalText + '"/>');
+	    }
+	});
+       
+	
+      });
+      
+      google.load("swfobject", "2.1");
+      
+      /*
+       * Chromeless player has no controls.
+       */
+	var video_ids = new Array();
+	var swfLoaded = false;
+	var newVids = false;
+	var youTubeLoadedRan = false;
+	function GetURLParameter(sParam)
+	{
+	    var sPageURL = window.location.search.substring(1);
+	    var sURLVariables = sPageURL.split('&');
+	    for (var i = 0; i < sURLVariables.length; i++) 
+	    {
+		var sParameterName = sURLVariables[i].split('=');
+		if (sParameterName[0] == sParam) 
+		{
+		    return sParameterName[1];
+		}
+	    }
+	    
+	    return '';
+	}
+      
+      $(window).resize(function() {
+	
+	sizeWindow();
+      });
+      
+      
+      $(window).load(function() {
+	
+	sizeWindow();
+      });
+      
+      function sizeWindow() {
+	var playlistWidth = $('#playlist').width() + 10;
+	var height = $(window).height();
+	var width = $(window).width();
+	var tooShort = false;
+	var tooSmall = false;
+	
+	if (height < 720) {
+	  tooShort = true;
+	}
+	if (width - playlistWidth < 1280) {
+	  tooSmall = true;
+	}
+	
+	var newWidth = width - playlistWidth;
+	var newHeight = (9/16)*newWidth;
+	
+	if (tooShort && tooSmall) {
+	    newWidth = width - playlistWidth;
+	    newHeight = (9/16)*newWidth;
+	    
+	    if (newHeight > height) {
+	      newHeight = height;
+	      newWidth = (16/9)*newHeight;
+	    }
+	}else if (tooShort) {
+	  newHeight = height;
+	  newWidth = (16/9)*newHeight;
+	} else if (tooSmall) {
+	  newWidth = width - playlistWidth;
+	  newHeight = (9/16)*newWidth;
+	}
+	
+	var plControlHeight = $('#playlistControls').height();
+	$('#wrapper').css("width",newWidth+playlistWidth);
+	$('#videoWrapper').css("width",newWidth);
+	$('#videoWrapper').css("height",newHeight);
+	$('#sidebar').css("height",newHeight);
+	$('#playlist').css("height",newHeight-plControlHeight);
+	
+	setSlider($('#playlist'));
+      }
+      // Update a particular HTML element with a new value
+      function updateHTML(elmId, value) {
+        document.getElementById(elmId).innerHTML = value;
+      }
+
+      // This function is called when an error is thrown by the player
+      function onPlayerError(errorCode) {
+        alert("An error occured of type:" + errorCode);
+      }
+  
+  
+      var newVideoStarting = false;
+       
+      // This function is called when the player changes state
+      function onPlayerStateChange(newState) {
+	
+        updateHTML("playerState", newState);
+	$('#videoTitle').html('');
+
+	
+	
+	
+	// Pull an AJAX query
+	if (ytplayer && newState == 1) {
+	  var current_video_index = ytplayer.getPlaylistIndex();
+	
+	  var current_video_id = video_ids[current_video_index];
+	  $.ajax({
+	    url: "http://gdata.youtube.com/feeds/api/videos/" + current_video_id + "?v=2&alt=json",
+	    dataType: "jsonp",
+	    success: function (data) { parseresults(data); }
+	  });
+	  
+	  
+	  
+	  $(".scroll-content-item").each(function () {
+		var index = parseInt($(this).find('.playlistOrder').text());
+		if ((index - 1) == current_video_index)
+		{
+		  $(".scroll-content-item").removeClass('active');
+		  $(this).addClass('active');
+		  return false;
+		}
+		return true;
+	    });
+	  
+	
+	}
+	      
+	if (ytplayer && newState == -1)
+	{
+	  var current_video_index = ytplayer.getPlaylistIndex();
+	  
+	  if (newVids)
+	  {
+	    newVids = false;
+	    ytplayer.loadPlaylist(video_ids, current_video_index);
+	    
+	  }
+	}
+      }
+
+      var derpCheck = false;
+      
+      function addVideosToPlaylistPanel(index) {	      
+	      
+	var plIndex = index + 1;
+	var video_id = video_ids[index];
+	/*$.ajax({
+		  url: "http://gdata.youtube.com/feeds/api/videos/" + value + "?v=2&alt=json",
+		  dataType: "jsonp",
+		  success: function (data) { addToPlaylist(data); }
+	  });*/
+	
+	var request = gapi.client.youtube.videos.list({
+	  id: video_id,
+	  part: 'snippet',
+	  key: 'AIzaSyCjbLmfhBvGAFR7gEQcoTnivVp6qoDWUHg'
+	});
+	
+	request.execute(function(response)
+	{
+	  var title = response.result.items[0].snippet.title;
+	  var channel = response.result.items[0].snippet.channelTitle;
+	  var thumbURL = response.result.items[0].snippet.thumbnails.default.url;
+	  
+	  $('.scroll-content').each(function()
+	  {
+	      var newDiv = "";
+	      
+	      newDiv += '<div class="scroll-content-item">';
+	      newDiv += '<div class="playlistOrder">' + plIndex + '</div>';
+	      newDiv += '<div class="thumbnail"><img width="100%" height="100%" src="' + thumbURL + '"/></div>';
+	      newDiv += '<div class="itemDetails">';
+	      newDiv += '<div class="itemName ellipsis">' + title + '</div>';
+	      newDiv += '<div class="itemAuthor">' + channel + '</div>';
+	      newDiv += '</div>';
+	      newDiv += '</div>';
+	      
+	      
+	      $(this).append(newDiv);
+	      
+	      $(".scroll-content-item").unbind('click');
+	      $(".scroll-content-item").click(function () {
+		var index = parseInt($(this).find('.playlistOrder').text());
+		ytplayer.loadPlaylist(video_ids, index-1);
+	      });
+	  });
+	  
+	  setSlider($('#playlist'));
+	  
+	  index = index + 1;
+	  
+	  if (index < video_ids.length) {
+	    addVideosToPlaylistPanel(index);
+	  }
+	  
+	});
+      }
+      
+      function addToPlaylist(data) {
+	$('.scroll-content').each(function()
+	  {
+	      $(this).append('<div>' + data.entry.title.$t + '</div>');
+	  }
+	);
+      }
+	function parseresults(data) {
+		$('#videoTitle').html(data.entry.title.$t);
+	}
+
+      // Display information about the current state of the player
+      function updatePlayerInfo() {
+        // Also check that at least one function exists since when IE unloads the
+        // page, it will destroy the SWF before clearing the interval.
+        if(ytplayer && ytplayer.getDuration) {
+          updateHTML("videoDuration", ytplayer.getDuration());
+          updateHTML("videoCurrentTime", ytplayer.getCurrentTime());
+          updateHTML("bytesTotal", ytplayer.getVideoBytesTotal());
+          updateHTML("startBytes", ytplayer.getVideoStartBytes());
+          updateHTML("bytesLoaded", ytplayer.getVideoBytesLoaded());
+          updateHTML("volume", ytplayer.getVolume());
+        }
+      }
+
+      // Allow the user to set the volume from 0-100
+      function setVideoVolume() {
+        var volume = parseInt(document.getElementById("volumeSetting").value);
+        if(isNaN(volume) || volume < 0 || volume > 100) {
+          alert("Please enter a valid volume between 0 and 100.");
+        }
+        else if(ytplayer){
+          ytplayer.setVolume(volume);
+        }
+      }
+
+      function playVideo() {
+        if (ytplayer) {
+          ytplayer.playVideo();
+        }
+      }
+
+      function pauseVideo() {
+        if (ytplayer) {
+          ytplayer.pauseVideo();
+        }
+      }
+
+      function muteVideo() {
+        if(ytplayer) {
+          ytplayer.mute();
+        }
+      }
+
+      function unMuteVideo() {
+        if(ytplayer) {
+          ytplayer.unMute();
+        }
+      }
+
+
+      // This function is automatically called by the player once it loads
+      function onYouTubePlayerReady(playerId) {
+        ytplayer = document.getElementById("ytPlayer");
+        // This causes the updatePlayerInfo function to be called every 250ms to
+        // get fresh data from the player
+        setInterval(updatePlayerInfo, 250);
+        updatePlayerInfo();
+        ytplayer.addEventListener("onStateChange", "onPlayerStateChange");
+        ytplayer.addEventListener("onError", "onPlayerError");
+	ytplayer.setPlaybackQuality("hd720");
+        //Load an initial video into the player
+        // ytplayer.cueVideoById("ylLzyHk54Z0");
+
+	//video_ids = ['XYnxIhYG-k4','822F2VQAKF4','tkwPVkPbWzU','7p9w9melgxw','1-K6jbg6M7I','aAXremKw5D8','Iytc4YEsxF4','YMKZIaIN7O4','5wkC8vWbFm8','xcTPRQSIbiQ','s8EZFMKxtjI','eL0-YzBuzTk','6pLzfyT_H1E','Lg1GYCp9RMU','penAy3JrXws','HIjOsDu4O6o','kA6G__jdKzo','kooxZ8j0trA','Dpvq6VVEzto','YcgR6ZbbUZI','EjjBZBIaSuM','yxWBd840E9g','Ohc5bg7jYcQ','i16V-SzExuk','lVONzZdMFuQ','xFOIdp_8-hc','lsBigDzg3F8','Pzc1h4hKvdE','ZwlOo9nHPVQ','Hk3MkEQ_tU4','euhao4KaDCU','7N7M7EGMI9g','oki5GpTP9dU','KUlv7qraZaM','87qJSuuMJMo','P3IUeFlJpE0','3vC5TsSyNjU','wrmvzuIugBA','DrZhmr_0Wpo','YbyuatxrU_c','fNd-YENGNx0','Wfoi0Mn6Kyc','zZ7yAMjgleE','dSspzWE5gvk','9uz9GsviaKI','r0DM0cVXCqE','zRJGIsC7TTI','QD9NHZ5k9ok','_2XmLcnYSwQ','iU1wrLVO3FQ','MLc43wq_M38','fzPtwIbra08','Dk6Mhem9yZw','KSqttO3NtCg','ZNWnc8O_bcs','9DpOTF7Tlak','zLzaZ_HXmjw','zzqNc72wUh4','1fswzW2FU4w','t2XpFsScA_w','TG-pEuM7wcA','3iUuWK0jgHk','i_5zYF_R5hs','Jsw3TaZbOno','auFtHzMJ7NI','Zoq5k4fQppQ','pBKlm-RX2zU','LWNLE4sklfI','IOLTn_5Y51A','D7oxb_aBnGE','y-WZwr7rYoQ','8-tadRlTUrY','3Q9rewnLFYw','x3PYBt0JjlY','TijoovYSrpc','7-tNUur2YoU','OyCnmfIfjvs','nAK7DgM9ISY','LDWzSiEwWxs','N8zslGAqy5k','m7oCUOLGj8s','J_b6_e9ZHaU','03sty-FnwSs','G-ro4zULEL8','zYXjLbMZFmo','Vsy1URDYK88','4jj6iWhCUHg','lVcFYgSU9D8','fgUTVzg8Gn8','rBuIySLwIwE','JQEaiDBUHIM','N53k5Hz-gJ8','JjOeSzktwJs','6R9FfC0Sen8','a-4Ny4URgf4','ksQbpP9v88Q','oIr5Eamemv8','hBRKSIj2tMc','4ohkCQp4xL0','Fk8qcGOtBFw','9aZFcosBTaQ','uTiwfkNGvXw','CrYntgFr-s0','OGNHLc4FWwA','cR2XilcGYOo','bW9HalSYIQ4','cIilbO78nfI','FzdSJhPMl4M','gcejLp72iCE','xkLDqFW85xE','VWLevReSUHI','BRvEmLVEs1Y','t3hSq55JaI8','jTi4TOQNou8','yp3UeCguVVI','6VAkOhXIsI0','rGXVdX22d-c','r8p5GB_jasc','ntVV3dTo-qw','9PnOG67flRA','PV9KejcKc3o','LBvyydUeTHs','VgKk8Eqyzkk','OclVIu-VP0g','AY7F0fDAVAI','y3TrjEuXuNw','Nvwu4nxGvDE','FtV6MVrRw4k','lTx3G6h2xyA','2yz5OZZZjcE'];
+	
+	swfLoaded = true;
+	
+	if (youTubeLoadedRan) { // We tried to load some videos, but the player wasn't ready. It is now, so let's load in dem vids
+	  youTubeLoaded();
+	  
+	}else{
+	  // no video IDs yet.
+	}
+	
+ 
+	  
+	
+	
+      }
+
+      	function prevVideo() {
+		if (ytplayer) {
+			ytplayer.previousVideo();
+		}
+	}
+
+	function nextVideo() {
+		if (ytplayer) {
+			ytplayer.nextVideo();
+		}
+	}
+      
+      var loadPlayerRan = false;
+      
+      // The "main method" of this sample. Called when someone clicks "Run".
+      function loadPlayer() {
+        
+        // Lets Flash from another domain call JavaScript
+        var params = { allowScriptAccess: "always", allowFullscreen: "true"};
+        // The element id of the Flash embed
+        var atts = { id: "ytPlayer" };
+        // All of the magic handled by SWFObject (http://code.google.com/p/swfobject/)
+	
+	
+	swfobject.embedSWF("http://www.youtube.com/v/XYnxIhYG-k4?version=3&enablejsapi=1&playerapiid=player1",
+                           "videoDiv", "100%", "100%", "9", null, null, params, atts);
+	
+	
+	
+	loadPlayerRan = true;
+        /*swfobject.embedSWF("http://www.youtube.com/apiplayer?" +
+                           "version=3&enablejsapi=1&playerapiid=player1",
+                           "videoDiv", "480", "360", "9", null, null, params, atts);*/
+      }
+      function _run() {
+	loadYouTube(GetURLParameter('channel'),youTubeLoaded);
+	
+	
+        //adYouTube(oadPlayer);
+        
+        //
+      }
+      
+      function youTubeLoaded(new_video_ids) {
+	video_ids = $.merge(video_ids,new_video_ids);
+	newVids = true;
+	
+	if (!loadPlayerRan) {
+	  loadPlayer();
+	  addVideosToPlaylistPanel(0);
+	  
+	}
+	
+	if (swfLoaded && !youTubeLoadedRan) {
+	   ytplayer.loadPlaylist(video_ids);
+	   
+	}
+	youTubeLoadedRan = true;
+      }
+      
+      function changeChannel() {
+	var newChannel = $('#channelName').val();
+	loadYouTube(newChannel,function(){
+	  video_ids = $.merge(video_ids,vidIds);
+	  ytplayer.loadPlaylist(video_ids);
+	}
+	);
+	
+      }
+      google.setOnLoadCallback(_run);
+    </script>
+    
+  </head>
+  <body style="font-family: Arial;border: 0 none;">
+    <div id="wrapper">
+      <div id="sidebar">
+	<div id="playlistControls">
+	  AP | SHF | NtO | OtN
+	</div>
+	<div id="playlist">
+	  <div></div>
+	</div>
+      </div>
+      <script src="verticalscroll.js" type="text/javascript"></script>
+      <script type="text/javascript">
+	setSlider($('#playlist'));
+      </script>
+
+      
+      <div id="videoWrapper">
+	<div id="videoDiv">Loading...</div>
+      </div>
+      <div id="videoInfo">
+        <p>Player state: <span id="playerState">--</span></p>
+        <p>Current Time: <span id="videoCurrentTime">--:--</span> | Duration: <span id="videoDuration">--:--</span></p>
+        <p>Bytes Total: <span id="bytesTotal">--</span> | Start Bytes: <span id="startBytes">--</span> | Bytes Loaded: <span id="bytesLoaded">--</span></p>
+        <p>Controls: <a href="javascript:void(0);" onclick="playVideo();">Play</a> | <a href="javascript:void(0);" onclick="pauseVideo();">Pause</a> | <a href="javascript:void(0);" onclick="muteVideo();">Mute</a> | <a href="javascript:void(0);" onclick="unMuteVideo();">Unmute</a></p>
+        <p><input id="volumeSetting" type="text" size="3" />&nbsp;<a href="javascript:void(0)" onclick="setVideoVolume();">&lt;- Set Volume</a> | Volume: <span id="volume">--</span></p>
+	<p><a href="javascript:void(0)" onclick="nextVideo();">Next</a> | <a href="javascript:void(0)" onclick="prevVideo();">Previous</a></p>
+	<p><input id="channelName" type="text" /></p>
+	<p><input id="submitChannel" type="submit" onClick="changeChannel();"/></p>
+	<div id="videoTitle"></div>
+      </div>
+      
+      <div class="scratch">EXTRA SPACE.</div>
+    </div>
+  </body>
+</html>

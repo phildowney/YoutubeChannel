@@ -86,9 +86,26 @@
 	    }
 	});
        
-	
+	$('#reverseOrder').click(reversePlaylistOrder)
       });
       
+      function reversePlaylistOrder() {
+	video_ids.reverse();
+	ytplayer.loadPlaylist(video_ids, 0);
+	
+	
+	
+	if (playlistPanelLoaded) {
+	  $('.scroll-content').each(function(){
+	    $(this).html('<div></div>');
+	  });
+	  playlistPanelLoaded = false;
+	  addVideosToPlaylistPanel(0);
+	}else{
+	  playlistPanelLoaded = true;
+	}
+	
+      }
       google.load("swfobject", "2.1");
       
       /*
@@ -230,61 +247,75 @@
       }
 
       var derpCheck = false;
+      var playlistPanelLoaded = true;
       
       function addVideosToPlaylistPanel(index) {	      
-	      
-	var plIndex = index + 1;
-	var video_id = video_ids[index];
-	/*$.ajax({
-		  url: "http://gdata.youtube.com/feeds/api/videos/" + value + "?v=2&alt=json",
-		  dataType: "jsonp",
-		  success: function (data) { addToPlaylist(data); }
-	  });*/
 	
-	var request = gapi.client.youtube.videos.list({
-	  id: video_id,
-	  part: 'snippet',
-	  key: 'AIzaSyCjbLmfhBvGAFR7gEQcoTnivVp6qoDWUHg'
-	});
-	
-	request.execute(function(response)
+	if(playlistPanelLoaded)
 	{
-	  var title = response.result.items[0].snippet.title;
-	  var channel = response.result.items[0].snippet.channelTitle;
-	  var thumbURL = response.result.items[0].snippet.thumbnails.default.url;
+	  playlistPanelLoaded = false;
+	  $('.scroll-content').each(function(){
+	    $(this).html('<div></div>');
+	  });
+	  addVideosToPlaylistPanel(0);
+	}
+	else
+	{
+	  var plIndex = index + 1;
+	  var video_id = video_ids[index];
+	  /*$.ajax({
+		    url: "http://gdata.youtube.com/feeds/api/videos/" + value + "?v=2&alt=json",
+		    dataType: "jsonp",
+		    success: function (data) { addToPlaylist(data); }
+	    });*/
 	  
-	  $('.scroll-content').each(function()
-	  {
-	      var newDiv = "";
-	      
-	      newDiv += '<div class="scroll-content-item">';
-	      newDiv += '<div class="playlistOrder">' + plIndex + '</div>';
-	      newDiv += '<div class="thumbnail"><img width="100%" height="100%" src="' + thumbURL + '"/></div>';
-	      newDiv += '<div class="itemDetails">';
-	      newDiv += '<div class="itemName ellipsis">' + title + '</div>';
-	      newDiv += '<div class="itemAuthor">' + channel + '</div>';
-	      newDiv += '</div>';
-	      newDiv += '</div>';
-	      
-	      
-	      $(this).append(newDiv);
-	      
-	      $(".scroll-content-item").unbind('click');
-	      $(".scroll-content-item").click(function () {
-		var index = parseInt($(this).find('.playlistOrder').text());
-		ytplayer.loadPlaylist(video_ids, index-1);
-	      });
+	  var request = gapi.client.youtube.videos.list({
+	    id: video_id,
+	    part: 'snippet',
+	    key: 'AIzaSyCjbLmfhBvGAFR7gEQcoTnivVp6qoDWUHg'
 	  });
 	  
-	  setSlider($('#playlist'));
-	  
-	  index = index + 1;
-	  
-	  if (index < video_ids.length) {
-	    addVideosToPlaylistPanel(index);
-	  }
-	  
-	});
+	  request.execute(function(response)
+	  {
+	    var title = response.result.items[0].snippet.title;
+	    var channel = response.result.items[0].snippet.channelTitle;
+	    var thumbURL = response.result.items[0].snippet.thumbnails.default.url;
+	    
+	    $('.scroll-content').each(function()
+	    {
+		var newDiv = "";
+		
+		newDiv += '<div class="scroll-content-item">';
+		newDiv += '<div class="playlistOrder">' + plIndex + '</div>';
+		newDiv += '<div class="thumbnail"><img width="100%" height="100%" src="' + thumbURL + '"/></div>';
+		newDiv += '<div class="itemDetails">';
+		newDiv += '<div class="itemName ellipsis">' + title + '</div>';
+		newDiv += '<div class="itemAuthor">' + channel + '</div>';
+		newDiv += '</div>';
+		newDiv += '</div>';
+		
+		
+		$(this).append(newDiv);
+		
+		$(".scroll-content-item").unbind('click');
+		$(".scroll-content-item").click(function () {
+		  var index = parseInt($(this).find('.playlistOrder').text());
+		  ytplayer.loadPlaylist(video_ids, index-1);
+		});
+	    });
+	    
+	    setSlider($('#playlist'));
+	    
+	    index = index + 1;
+	    
+	    if (index < video_ids.length) {
+	      addVideosToPlaylistPanel(index);
+	    }else{
+	      playlistPanelLoaded = true;
+	    }
+	    
+	  });
+	}
       }
       
       function addToPlaylist(data) {
@@ -427,6 +458,7 @@
 	
 	if (!loadPlayerRan) {
 	  loadPlayer();
+	  playlistPanelLoaded = false;
 	  addVideosToPlaylistPanel(0);
 	  
 	}
@@ -455,7 +487,7 @@
     <div id="wrapper">
       <div id="sidebar">
 	<div id="playlistControls">
-	  AP | SHF | NtO | OtN
+	  AP | SHF | <button id="reverseOrder" type="button">Reverse</button>
 	</div>
 	<div id="playlist">
 	  <div></div>
